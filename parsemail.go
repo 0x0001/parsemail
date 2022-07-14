@@ -45,10 +45,20 @@ func Parse(r io.Reader) (email Email, err error) {
 	case contentTypeMultipartRelated:
 		email.TextBody, email.HTMLBody, email.EmbeddedFiles, err = parseMultipartRelated(msg.Body, params["boundary"])
 	case contentTypeTextPlain:
-		message, _ := decodeContent(msg.Body, msg.Header.Get("Content-Transfer-Encoding"))
+		var reader io.Reader
+		reader, err = decodeContent(msg.Body, msg.Header.Get("Content-Transfer-Encoding"))
+		if err != nil {
+			return
+		}
+		message, _ := io.ReadAll(reader)
 		email.TextBody = strings.TrimSuffix(string(message[:]), "\n")
 	case contentTypeTextHtml:
-		message, _ := decodeContent(msg.Body, msg.Header.Get("Content-Transfer-Encoding"))
+		var reader io.Reader
+		reader, err = decodeContent(msg.Body, msg.Header.Get("Content-Transfer-Encoding"))
+		if err != nil {
+			return
+		}
+		message, _ := io.ReadAll(reader)
 		email.HTMLBody = strings.TrimSuffix(string(message[:]), "\n")
 	default:
 		email.Content, err = decodeContent(msg.Body, msg.Header.Get("Content-Transfer-Encoding"))
@@ -483,7 +493,7 @@ type Email struct {
 	ResentMessageID string
 
 	ContentType string
-	Content io.Reader
+	Content     io.Reader
 
 	HTMLBody string
 	TextBody string
