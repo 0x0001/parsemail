@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
+	"mime/quotedprintable"
 	"net/mail"
 	"strings"
 	"time"
@@ -355,7 +356,7 @@ func decodeAttachment(part *multipart.Part) (at Attachment, err error) {
 }
 
 func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
-	switch encoding {
+	switch strings.ToLower(encoding) {
 	case "base64":
 		decoded := base64.NewDecoder(base64.StdEncoding, content)
 		b, err := ioutil.ReadAll(decoded)
@@ -371,6 +372,12 @@ func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
 		}
 
 		return bytes.NewReader(dd), nil
+	case "quoted-printable":
+		data, err := ioutil.ReadAll(quotedprintable.NewReader(content))
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
 	case "":
 		return content, nil
 	default:
